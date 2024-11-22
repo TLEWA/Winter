@@ -1,0 +1,4 @@
+UPDATE TOKEN
+SET CLIPBOARD = ?,
+    TOKEN = ?,
+    WHERE LUOGUUID = ?;
