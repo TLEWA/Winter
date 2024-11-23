@@ -37,7 +37,7 @@ status:
 Request: JSON
 ```json
 {
-    "cilpboard": "uoaf8yc6",
+    "paste": "uoaf8yc6",
     "token": "52b4e27c-2169-410c-a044-68ea3b388583"
     // 未获取填 null
 }
@@ -45,7 +45,7 @@ Request: JSON
 Response: int
 200: Success
 422: format error
-402: cilpboard unavailable
+402: paste unavailable
 
 
 # get /status/{uid}

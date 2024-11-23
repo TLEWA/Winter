@@ -36,16 +36,27 @@ class Database(object):
         self.conn.commit()
         return self.cursor
 
-    def execute_sql(self, sql, params=[]):
+    def execute_sql(self, sql: str, params: list = []):
         # 读取SQL文件内容
         try:
             with open(path.abspath(path.join("../db/", sql+".sql")), encoding='utf-8', mode='r') as f:
                 sql_list = f.read().split(';')
-                for x, p in sql_list, params:
-                    x.replace("\n", " ")
-                    sql_item = x+';'
-                    logger.info(f"execute sql: {sql_item} with params: {p}")
-                    self.execute(sql_item, p)
+                sql_list = [x.replace("\n", " ") for x in sql_list
+                            if x.replace("\n", " ") != '' and not x.replace("\n", " ").isspace()]
+                logger.info(f"execute sql list: {sql_list}")
+                if (params != []):
+                    if len(params) != len(sql_list):
+                        raise Exception("params length not match sql length")
+                    for x, p in zip(sql_list, params):
+                        sql_item = x+';'
+                        logger.info(f"execute sql: {
+                                    sql_item} with params: {p}")
+                        self.execute(sql_item, p)
+                else:
+                    for x in sql_list:
+                        sql_item = x+';'
+                        logger.info(f"execute sql: {sql_item}")
+                        self.execute(sql_item)
         except Exception as e:
             logger.error(f"execute sql error: {e} when execute {sql}")
         return self.cursor
@@ -54,17 +65,19 @@ class Database(object):
         return self.cursor.fetchall()
 
     def fetchone(self):
-        return self.cursor.fetchone()
+        result = self.cursor.fetchone()
+        logger.info(f"fetch one: {result}")
+        return result
 
 
 db = Database(path.abspath(path.join("../db/", config["db"]["name"])))
 db.execute_sql("query_table")
 if db.fetchone() is None:
-    db.execute_sql("create_table",[[]])
+    db.execute_sql("create_table")
 
 
 class Item(BaseModel):
-    cilpboard: str | None = None
+    paste: str | None = None
     token: str | None = None
 
 
@@ -81,35 +94,40 @@ async def get_token(numbers: int):
 
 @app.post("/change/{uid}")
 async def change_token(uid: str, item: Item):
+
     if item is None:
         return 422
-    if item.cilpboard is None and item.token is None:
+    if item.paste is None and item.token is None:
         return 422
     if re.match(RE_UID, uid) is None:
         return 422
     if item.token is not None and not re.match(RE_TOKEN, item.token):
         return 422
-    if item.cilpboard is not None and not re.match(RE_COLIPBOARD, item.cilpboard):
+    if item.paste is not None and not re.match(RE_COLIPBOARD, item.paste):
         return 422
-    cilpboard = item.cilpboard
+    paste = item.paste
     token = item.token
 
-    # 开始检验 cilpboard
-
+    # 开始检验 paste
+    req_data = {"uid": int(uid), "paste": paste}
     request = httpx.post("https://api.paintboard.ayakacraft.com:11451/api/auth/gettoken",
-                         data={"uid": int(uid), "paste": cilpboard})
+                         json=req_data)
+    logging.info(f"request paintboard API: {
+                 request} and respond with message: {request.text}")
+
     respond = request.json()
-    if respond["status"] == 200:
+
+    if respond["statusCode"] == 200:
         # 检验成功
         token = respond["data"]["token"]
     else:
         logger.warning(f"cilpboard check error: {respond}")
-        if respond["status"] == 403:
+        if respond["statusCode"] == 403:
             return 402
-    
+
     db.execute_sql("query", [[uid]])
     if db.fetchone() is None:
-        db.execute_sql("insert", [[uid, cilpboard, token]])
+        db.execute_sql("insert", [[uid, paste, token]])
     else:
-        db.execute_sql("change", [[cilpboard, token, uid]])
+        db.execute_sql("change", [[paste, token, uid]])
     return 200
