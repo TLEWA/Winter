@@ -92,6 +92,12 @@ async def get_token(numbers: int):
     pass
 
 
+@app.get("/getnumber")
+async def get_number():
+    db.execute_sql("query_table_number")
+    return {"status": 200, "number": db.fetchone()[0]}
+
+
 @app.post("/change/{uid}")
 async def change_token(uid: str, item: Item):
 
@@ -125,7 +131,7 @@ async def change_token(uid: str, item: Item):
         if respond["statusCode"] == 403:
             return 402
 
-    db.execute_sql("query", [[uid]])
+    db.execute_sql("query_uid", [[uid]])
     if db.fetchone() is None:
         db.execute_sql("insert", [[uid, paste, token]])
     else:
