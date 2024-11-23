@@ -6,6 +6,7 @@ from os import path
 import logging
 import re
 import httpx
+from random import choices
 
 RE_TOKEN = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
 RE_UID = "^\\d{1,7}$"
@@ -86,21 +87,29 @@ async def read_root():
     return "heartbeating!"
 
 
-@app.get("/get/{numbers}")
-async def get_token(numbers: int):
-    # return {"item_id": item_id, "q": q}
-    pass
-
-
 @app.get("/getnumber")
-async def get_number():
+async def get_number() -> dict[str, int]:
     db.execute_sql("query_table_number")
     return {"status": 200, "number": db.fetchone()[0]}
 
 
+@app.get("/get/{numbers}")
+async def get_token(numbers: int):
+    # return {"item_id": item_id, "q": q}
+    if (numbers <= 0):
+        return {"status": 401}
+    db.execute_sql("query_table_number")
+    if (numbers > db.fetchone()[0]):
+        return {"status": 402}
+    db.execute_sql("query_number")
+    fetch_all = db.fetchall()
+    data = [{"uid": x[0], "token": x[1]}
+            for x in choices(fetch_all, k=numbers)]
+    return {"status": 200, "data": data}
+
+
 @app.post("/change/{uid}")
 async def change_token(uid: str, item: Item):
-
     if item is None:
         return 422
     if item.paste is None and item.token is None:
@@ -136,4 +145,4 @@ async def change_token(uid: str, item: Item):
         db.execute_sql("insert", [[uid, paste, token]])
     else:
         db.execute_sql("change", [[paste, token, uid]])
-    return 200
+        return 200

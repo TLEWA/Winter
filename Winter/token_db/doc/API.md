@@ -19,11 +19,14 @@ Response: JSON
 ```json
 {
     "status": 200,
-{
-    "uid": "123456",
-    "token": "52b4e27c-2169-410c-a044-68ea3b388583"
-},
-... * numbers
+    "datas":
+    [
+        {
+        "uid": "123456",
+        "token": "52b4e27c-2169-410c-a044-68ea3b388583"
+        },
+        // ... * numbers
+    ]
 }
 ```
 status: 
