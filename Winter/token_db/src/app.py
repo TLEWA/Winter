@@ -6,7 +6,7 @@ from os import path
 import logging
 import re
 import httpx
-from random import choices
+from random import sample
 
 RE_TOKEN = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
 RE_UID = "^\\d{1,7}$"
@@ -50,8 +50,7 @@ class Database(object):
                         raise Exception("params length not match sql length")
                     for x, p in zip(sql_list, params):
                         sql_item = x+';'
-                        logger.info(f"execute sql: {
-                                    sql_item} with params: {p}")
+                        logger.info(f"execute sql: {sql_item} with params: {p}")
                         self.execute(sql_item, p)
                 else:
                     for x in sql_list:
@@ -83,7 +82,7 @@ class Item(BaseModel):
 
 
 @app.get("/")
-async def read_root():
+async def check_heartbeat():
     return "heartbeating!"
 
 
@@ -104,7 +103,7 @@ async def get_token(numbers: int):
     db.execute_sql("query_number")
     fetch_all = db.fetchall()
     data = [{"uid": x[0], "token": x[1]}
-            for x in choices(fetch_all, k=numbers)]
+            for x in sample(fetch_all, numbers)]
     return {"status": 200, "data": data}
 
 
@@ -127,8 +126,7 @@ async def change_token(uid: str, item: Item):
     req_data = {"uid": int(uid), "paste": paste}
     request = httpx.post("https://api.paintboard.ayakacraft.com:11451/api/auth/gettoken",
                          json=req_data)
-    logging.info(f"request paintboard API: {
-                 request} and respond with message: {request.text}")
+    logging.info(f"request paintboard API: {request} and respond with message: {request.text}")
 
     respond = request.json()
 
